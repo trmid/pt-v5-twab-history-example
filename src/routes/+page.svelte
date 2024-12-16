@@ -68,16 +68,17 @@
       console.log({ observations, decimals })
 
       const name = `${symbol}${accountAddress ? `:${accountAddress.slice(0, 6)}...${accountAddress.slice(-4)}` : ""}`
+      const yAxisName = accountAddress ? "Delegate Balance" : "TVL"
       const chart = new CanvasJS.Chart("chartContainer", {
         //Chart Options - Check https://canvasjs.com/docs/charts/chart-options/
         height: 500,
         title:{
-          text: `TWAB History for ${name}`,
+          text: `${yAxisName} History for ${name}`,
           fontFamily: "monospace",
           fontSize: "24"
         },
         axisY:[{
-          title: "TWAB",
+          title: yAxisName,
           fontFamily: "monospace",
           lineColor: "#4c249f",
           tickColor: "#4c249f",
@@ -107,6 +108,9 @@
 
 <main>
   <h1>PoolTogether V5 TWAB History</h1>
+  <p>
+    This tool queries the entire available observation history for vault TVL or user balance (including delegations) in PoolTogether V5.
+  </p>
   <div class="inputs">
     <select bind:value={chain}>
       {#each chains as chain}
@@ -116,7 +120,7 @@
     <input type="text" name="vaultAddress" placeholder="Vault Address (0xabcd...)" bind:value={vaultAddress}>
     <input type="text" name="accountAddress" placeholder="User Address (optional)" bind:value={accountAddress}>
     <div>
-      <button on:click={query} disabled={querying || !vaultAddress || !chain}>Query TWAB History</button>
+      <button on:click={query} disabled={querying || !vaultAddress || !chain}>Query</button>
     </div>
   </div>
   <div bind:this={chartContainer} id="chartContainer"></div>

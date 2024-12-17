@@ -35,17 +35,22 @@
     }
   }
 
+  const rpcOverride: Record<number, string> = {
+    [gnosis.id]: 'https://1rpc.io/gnosis'
+  }
+
   let chain: typeof chains[0]
   let vaultAddress: string = ""
   let accountAddress: string | undefined
-  let chartContainer: HTMLDivElement
   let querying = false
+  let csv: string = ""
+  let csvFileName: string = "something.csv"
 
   const query = async () => {
     if (!chain || !vaultAddress) return
     querying = true
     try {
-      const client = createPublicClient({ chain, transport: http(undefined, { batch: true }) })
+      const client = createPublicClient({ chain, transport: http(rpcOverride[chain.id] ?? undefined, { batch: true }) })
       const [observations, decimals, symbol] = await Promise.all([
         getTwabHistory({
           viemClient: client as PublicClient,
@@ -67,30 +72,44 @@
       ])
       console.log({ observations, decimals })
 
+      csvFileName = `observations-${chain.id}-${vaultAddress.toLowerCase()}-${accountAddress?.toLowerCase() ?? "TDB"}.csv`
+      csv = ["timestamp,balance,cumulativeBalance", ...observations.map(x => [
+        `${new Date(x.timestamp * 1000).toLocaleString('en-CA', { timeZone: 'UTC', hour12: false }).replaceAll(",", "")}`,
+        `${formatUnits(x.balance, decimals)}`,
+        `${formatUnits(x.cumulativeBalance, decimals)}`
+      ].join(","))].join("\n")
+
       const name = `${symbol}${accountAddress ? `:${accountAddress.slice(0, 6)}...${accountAddress.slice(-4)}` : ""}`
-      const yAxisName = accountAddress ? "Delegate Balance" : "TVL"
+      const yAxisName = accountAddress ? "Delegate Balance" : "Total Delegate Balance"
       const chart = new CanvasJS.Chart("chartContainer", {
         //Chart Options - Check https://canvasjs.com/docs/charts/chart-options/
         height: 500,
-        title:{
+        title: {
           text: `${yAxisName} History for ${name}`,
           fontFamily: "monospace",
           fontSize: "24"
         },
-        axisY:[{
+        axisX: {
+          labelFontFamily: "monospace",
+          titleFontFamily: "monospace",
+        },
+        axisY: [{
           title: yAxisName,
-          fontFamily: "monospace",
           lineColor: "#4c249f",
           tickColor: "#4c249f",
+          labelFontFamily: "monospace",
           labelFontColor: "#4c249f",
+          titleFontFamily: "monospace",
           titleFontColor: "#4c249f",
           includeZero: true
         }],
+        toolTip: {
+          fontFamily: "monospace"
+        },
         data: [{
           type: "stepLine",
           name,
           color: "#4c249f",
-          fontFamily: "monospace",
           showInLegend: false,
           axisYIndex: 0,
           dataPoints: observations.map(x => ({
@@ -104,12 +123,22 @@
       querying = false
     }
   }
+
+  const downloadCSV = () => {
+    if (csv && csvFileName) {
+      const fileBlob = new Blob([csv], { type: 'text/csv' })
+      const aTag = document.createElement('a')
+      aTag.href = URL.createObjectURL(fileBlob)
+      aTag.download = csvFileName
+      aTag.click()
+    }
+  }
 </script>
 
 <main>
   <h1>PoolTogether V5 TWAB History</h1>
   <p>
-    This tool queries the entire available observation history for vault TVL or user balance (including delegations) in PoolTogether V5.
+    This tool queries the entire available observation history for vault total delegate balance (does not include sponsorship deposits) or user delegate balance in PoolTogether V5.
   </p>
   <div class="inputs">
     <select bind:value={chain}>
@@ -123,7 +152,10 @@
       <button on:click={query} disabled={querying || !vaultAddress || !chain}>Query</button>
     </div>
   </div>
-  <div bind:this={chartContainer} id="chartContainer"></div>
+  <div id="chartContainer"></div>
+  {#if csv}
+    <button on:click={downloadCSV}>Download CSV</button>
+  {/if}
 </main>
 <footer>
   <p>Check out the <a href="https://www.npmjs.com/package/pt-v5-twab-history" target="_blank">pt-v5-twab-history</a> library to use this query in your own project!</p>
@@ -164,7 +196,7 @@
   }
 
   #chartContainer {
-    margin-top: 1rem;
+    margin: 1rem 0;
     height: 500px;
     border-radius: 0.5rem;
     overflow: hidden;

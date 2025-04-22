@@ -26,8 +26,8 @@
       offset: 1726016400
     },
     [worldchain.id]: {
-      address: "0xBae945b19C6D9b306d18Da48501bf634B6A6813B",
-      offset: 1733432400
+      address: "0xA13d89cF3e7f59bA1a2B5B5c260bDfc64DD1044C",
+      offset: 1742418000
     },
     [gnosis.id]: {
       address: "0x84090aea5370565b88108c4ffed378672a8afde6",
